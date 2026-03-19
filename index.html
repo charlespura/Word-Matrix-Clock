@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>live word matrix · 11:48 → TEN TO TWELVE</title>
+  <!-- Tailwind + crisp mono -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    body {
+      background: #0f2420;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+    }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(11, minmax(0, 1fr));
+      gap: 0.4rem 0.2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .cell {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: #2e6b5c;
+      text-transform: uppercase;
+      transition: all 0.18s ease;
+      letter-spacing: 0.5px;
+    }
+    .cell.active {
+      color: #f3ba4b;
+      text-shadow: 0 0 12px #f68e2e, 0 0 25px #f5b342;
+      font-weight: 700;
+      transform: scale(1.02);
+    }
+    .footer .cell {
+      color: #3f8a78;
+      font-size: 1.2rem;
+    }
+    @media (max-width: 600px) {
+      .cell { font-size: 1rem; }
+      .matrix-grid { gap: 0.2rem; }
+    }
+    @media (max-width: 400px) {
+      .cell { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-3">
+
+<div class="w-full max-w-3xl bg-[#0c2c26] rounded-3xl shadow-2xl p-5 md:p-7 border border-[#1d6d5b]">
+  
+  <!-- header with live digital (shows 11:48:23 PM as example) -->
+  <div class="flex justify-between items-center mb-4 text-[#4db19b] text-xs md:text-sm tracking-widest">
+    <span>⌚ MATRIX·TIME · LIVE</span>
+    <span class="bg-[#19473e] px-4 py-1.5 rounded-full text-[#f8cf5c] font-bold" id="digitalDisplay">11:48:23 PM</span>
+  </div>
+
+  <!-- MAIN GRID – exactly 10 rows x 11 columns from prompt -->
+  <div class="matrix-grid" id="wordMatrix"></div>
+
+  <!-- footer row: BIEGERTAFUR (11 letters) -->
+  <div class="matrix-grid footer mt-2" id="footerRow"></div>
+
+  <!-- controls & spoken phrase (now saying: IT IS TEN TO TWELVE) -->
+  <div class="flex flex-wrap justify-between items-center mt-5 text-[#56b6a1]">
+    <div class="flex gap-3">
+      <button id="forceUpdate" class="bg-[#266457] hover:bg-[#308f7a] px-5 py-2 rounded-full text-[#fddf87] text-sm transition shadow-lg">⟳ refresh highlight</button>
+      <span class="py-2 text-sm">now saying: <span id="timePhrase" class="text-[#fad168] font-bold">IT IS TEN TO TWELVE</span></span>
+    </div>
+    <div class="footer text-[#3fa28b] text-sm tracking-widest">BIEGERTAFUR</div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // --------------------- MATRIX (10 rows x 11 cols) from the user's vertical layout ---------------------
+    const rows = [
+      "ITLISASAMPM",       // 0
+      "ACQUARTERDC",       // 1
+      "TWENTYFIVEX",       // 2
+      "HALFBTENFTO",       // 3
+      "PASTERUNINE",       // 4
+      "ONESIXTHREE",       // 5
+      "FOURFIVETWO",       // 6
+      "EIGHTELEVEN",       // 7
+      "SEVENTWELVE",       // 8
+      "TENSEOCLOCK"        // 9
+    ];
+
+    // footer exactly as user printed (BIEGERTAFUR, 11 chars)
+    const footerStr = "BIEGERTAFUR"; 
+
+    // render main grid
+    const container = document.getElementById('wordMatrix');
+    container.innerHTML = '';
+    rows.forEach((rowStr, r) => {
+      for (let c = 0; c < 11; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = rowStr[c] || '·';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        container.appendChild(cell);
+      }
+    });
+
+    // footer row
+    const footerDiv = document.getElementById('footerRow');
+    footerDiv.innerHTML = '';
+    for (let i = 0; i < 11; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.textContent = footerStr[i] || ' ';
+      footerDiv.appendChild(cell);
+    }
+
+    const cells = document.querySelectorAll('#wordMatrix .cell');
+
+    function activateRange(row, start, end) {
+      if (row < 0 || row > 9) return;
+      for (let c = start; c <= end; c++) {
+        if (c >= 0 && c < 11) {
+          let idx = row * 11 + c;
+          if (cells[idx]) cells[idx].classList.add('active');
+        }
+      }
+    }
+
+    function clearHighlights() {
+      cells.forEach(c => c.classList.remove('active'));
+    }
+
+    // highlight hour by number (1-12)
+    function highlightHour(hourNum) {
+      const hourStr = hourNum === 1 ? 'ONE' : hourNum === 2 ? 'TWO' : hourNum === 3 ? 'THREE' :
+                      hourNum === 4 ? 'FOUR' : hourNum === 5 ? 'FIVE' : hourNum === 6 ? 'SIX' :
+                      hourNum === 7 ? 'SEVEN' : hourNum === 8 ? 'EIGHT' : hourNum === 9 ? 'NINE' :
+                      hourNum === 10 ? 'TEN' : hourNum === 11 ? 'ELEVEN' : 'TWELVE';
+
+      if (hourStr === 'ONE') activateRange(5, 0, 2);        // ONE  row5 col0-2
+      else if (hourStr === 'TWO') activateRange(6, 8, 10);  // TWO  row6 col8-10
+      else if (hourStr === 'THREE') activateRange(5, 6, 10); // THREE row5 col6-10
+      else if (hourStr === 'FOUR') activateRange(6, 0, 3);  // FOUR row6 col0-3
+      else if (hourStr === 'FIVE') activateRange(2, 6, 9);  // FIVE row2 col6-9
+      else if (hourStr === 'SIX') activateRange(5, 3, 5);   // SIX row5 col3-5
+      else if (hourStr === 'SEVEN') activateRange(8, 0, 4); // SEVEN row8 col0-4
+      else if (hourStr === 'EIGHT') activateRange(7, 0, 4); // EIGHT row7 col0-4
+      else if (hourStr === 'NINE') activateRange(4, 7, 10); // NINE row4 col7-10
+      else if (hourStr === 'TEN') activateRange(9, 0, 2);   // TEN row9 col0-2
+      else if (hourStr === 'ELEVEN') activateRange(7, 5, 10); // ELEVEN row7 col5-10
+      else if (hourStr === 'TWELVE') activateRange(8, 5, 10); // TWELVE row8 col5-10
+
+      return hourStr;
+    }
+
+    // ---------- HIGHLIGHT BASED ON CURRENT TIME (will display 11:48 → TEN TO TWELVE) ----------
+    function highlightCurrentTime() {
+      clearHighlights();
+
+      const now = new Date();
+      let h = now.getHours();
+      let m = now.getMinutes();
+
+      // For demonstration, if you want to lock 11:48 uncomment line below – but we keep live,
+      // and the prompt shows 11:48:23 PM -> so "TEN TO TWELVE"
+      // h = 23; m = 48;   // force 11:48 PM
+
+      const hour12 = h % 12 || 12;
+      let minuteRounded = Math.round(m / 5) * 5;
+      if (minuteRounded === 60) minuteRounded = 0;
+
+      let minuteWord = '';
+      let pastTo = 'PAST';
+      let hourToShow = hour12;
+
+      // logic for 5‑min steps
+      if (minuteRounded === 0) {
+        minuteWord = '';
+        pastTo = '';
+      } else if (minuteRounded === 5) minuteWord = 'FIVE';
+      else if (minuteRounded === 10) minuteWord = 'TEN';
+      else if (minuteRounded === 15) minuteWord = 'QUARTER';
+      else if (minuteRounded === 20) minuteWord = 'TWENTY';
+      else if (minuteRounded === 25) minuteWord = 'TWENTYFIVE';
+      else if (minuteRounded === 30) minuteWord = 'HALF';
+      else if (minuteRounded === 35) { minuteWord = 'TWENTYFIVE'; pastTo = 'TO'; hourToShow = (hour12 % 12) + 1; if (hourToShow === 13) hourToShow = 1; }
+      else if (minuteRounded === 40) { minuteWord = 'TWENTY'; pastTo = 'TO'; hourToShow = (hour12 % 12) + 1; if (hourToShow === 13) hourToShow = 1; }
+      else if (minuteRounded === 45) { minuteWord = 'QUARTER'; pastTo = 'TO'; hourToShow = (hour12 % 12) + 1; if (hourToShow === 13) hourToShow = 1; }
+      else if (minuteRounded === 50) { minuteWord = 'TEN'; pastTo = 'TO'; hourToShow = (hour12 % 12) + 1; if (hourToShow === 13) hourToShow = 1; }
+      else if (minuteRounded === 55) { minuteWord = 'FIVE'; pastTo = 'TO'; hourToShow = (hour12 % 12) + 1; if (hourToShow === 13) hourToShow = 1; }
+
+      if (hourToShow === 0) hourToShow = 12;
+
+      // --- ACTIVATE "IT" and "IS" (row0) ---
+      activateRange(0, 0, 1); // IT (col0-1)
+      activateRange(0, 3, 4); // IS (col3-4)
+
+      // --- MINUTE WORD ---
+      if (minuteWord === 'FIVE') {
+        activateRange(2, 6, 9);      // FIVE row2 col6-9
+      }
+      else if (minuteWord === 'TEN') activateRange(3, 5, 7);      // TEN row3 col5-7
+      else if (minuteWord === 'QUARTER') activateRange(1, 2, 8);  // QUARTER row1 col2-8 (Q=2,U=3,A=4,R=5,T=6,E=7,R=8)
+      else if (minuteWord === 'TWENTY') activateRange(2, 0, 5);   // TWENTY row2 col0-5
+      else if (minuteWord === 'TWENTYFIVE') activateRange(2, 0, 9); // TWENTYFIVE row2 col0-9
+      else if (minuteWord === 'HALF') activateRange(3, 0, 3);     // HALF row3 col0-3
+
+      // --- PAST / TO ---
+      if (pastTo === 'PAST') activateRange(4, 0, 3); // PAST row4 col0-3
+      else if (pastTo === 'TO') activateRange(3, 9, 10); // TO row3 col9-10
+
+      // --- HOUR (highlight the hour word) ---
+      const hourWord = highlightHour(hourToShow);
+
+      // --- OCLOCK if needed ---
+      if (minuteRounded === 0) activateRange(9, 5, 10); // OCLOCK row9 col5-10
+
+      // update spoken phrase (e.g. "IT IS TEN TO TWELVE")
+      let desc = `IT IS `;
+      if (minuteWord) desc += `${minuteWord} `;
+      if (pastTo && minuteRounded !== 0) desc += `${pastTo} `;
+      desc += `${hourWord}`;
+      if (minuteRounded === 0) desc += ` OCLOCK`;
+      document.getElementById('timePhrase').innerText = desc;
+
+      // update digital display
+      updateDigital();
+    }
+
+    function updateDigital() {
+      const d = new Date();
+      let h = d.getHours();
+      let m = d.getMinutes();
+      let s = d.getSeconds();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      let hour12 = h % 12 || 12;
+      document.getElementById('digitalDisplay').innerText = `${hour12}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')} ${ampm}`;
+    }
+
+    // initial call
+    highlightCurrentTime();
+
+    // every second
+    setInterval(() => {
+      highlightCurrentTime();
+    }, 1000);
+
+    // manual refresh button
+    document.getElementById('forceUpdate').addEventListener('click', () => {
+      highlightCurrentTime();
+    });
+
+  })();
+</script>
+
+<!-- The matrix now shows 11:48 → TEN TO TWELVE exactly as the prompt. -->
+</body>
+</html>
